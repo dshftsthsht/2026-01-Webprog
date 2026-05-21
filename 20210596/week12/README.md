@@ -5,7 +5,17 @@
 
 ## 프로젝트 개요
 
-이번 주차에는 기존 뉴스 관리 웹 프로젝트를 기반으로 **서블릿 필터(Filter)** 기능을 추가하는 실습을 진행하였다.
+이번 주차에는 **서블릿 필터(Filter)** 와 **리스너(Listener)** 실습을 진행하였다.
+
+1차시에는 기존 뉴스 관리 웹 프로젝트를 기반으로 `NewsFilter.java`를 추가하여 한글 인코딩 처리를 필터로 분리하였다.
+
+2차시에는 `SessionListener` 프로젝트를 새로 생성하여 `ServletContextListener`, `ServletContextAttributeListener`, `HttpSessionListener`, `HttpSessionAttributeListener`를 구현하고, Tomcat 로그를 통해 리스너의 동작 결과를 확인하는 실습을 진행하였다.
+
+---
+
+# 1차시 - News Filter 실습
+
+## 실습 개요
 
 기존 `news_project`에서는 `NewsController.java` 내부에서 직접 한글 인코딩을 처리하였다.
 
@@ -203,7 +213,299 @@ http://localhost:8080/news_filter/news.ice?action=listNews
 
 특히 이번 실습의 핵심인 한글 인코딩 처리는 `NewsController.java`가 아니라 `NewsFilter.java`에서 처리하도록 변경하였다.
 
-## 오늘 작업 요약
+---
+
+# 2차시 - SessionListener 실습
+
+## 실습 개요
+
+2차시에는 `SessionListener` 프로젝트를 새로 생성하여 리스너 실습을 진행하였다.
+
+리스너는 웹 애플리케이션에서 특정 이벤트가 발생했을 때 자동으로 실행되는 객체이다. 이번 실습에서는 서블릿 컨텍스트와 세션의 생성, 종료, 속성 추가, 속성 변경, 속성 삭제 이벤트를 감지하도록 구현하였다.
+
+실행 결과는 브라우저 화면이 아니라 Tomcat 로그 파일에서 확인하였다.
+
+## 실습 목표
+
+- 리스너의 개념 이해
+- `@WebListener` 애너테이션 사용
+- `ServletContextListener` 구현
+- `ServletContextAttributeListener` 구현
+- `HttpSessionListener` 구현
+- `HttpSessionAttributeListener` 구현
+- 서블릿 실행 후 Tomcat 로그에서 리스너 동작 결과 확인
+
+## 프로젝트 구조
+
+```text
+SessionListener/
+├── src/main/
+│   ├── java/kr/hnu/ice/
+│   │   ├── ListenerExam.java
+│   │   └── ListenerTestServlet.java
+│   └── webapp/
+│       ├── WEB-INF/
+│       │   └── web.xml
+│       └── index.jsp
+├── pom.xml
+└── README.md
+```
+
+## 구현 내용
+
+### 1. SessionListener 프로젝트 생성
+
+`week12` 폴더 안에 새로운 Maven WebApp 프로젝트인 `SessionListener`를 생성하였다.
+
+```text
+week12
+├── news_filter
+└── SessionListener
+```
+
+### 2. ListenerExam.java 생성
+
+`ListenerExam.java` 파일을 생성하고, 여러 리스너 인터페이스를 구현하였다.
+
+구현한 인터페이스는 다음과 같다.
+
+```java
+ServletContextListener
+ServletContextAttributeListener
+HttpSessionListener
+HttpSessionAttributeListener
+```
+
+`@WebListener` 애너테이션을 사용하여 별도의 `web.xml` 등록 없이 리스너가 자동으로 동작하도록 설정하였다.
+
+```java
+@WebListener
+public class ListenerExam implements ServletContextListener,
+        ServletContextAttributeListener,
+        HttpSessionListener,
+        HttpSessionAttributeListener {
+    ...
+}
+```
+
+### 3. ServletContextListener 구현
+
+웹 애플리케이션이 시작되거나 종료될 때 동작하도록 구현하였다.
+
+```java
+@Override
+public void contextInitialized(ServletContextEvent sce) {
+    sce.getServletContext().log("[ServletContextListener] contextInitialized 호출");
+    System.out.println("[ServletContextListener] contextInitialized 호출");
+}
+
+@Override
+public void contextDestroyed(ServletContextEvent sce) {
+    sce.getServletContext().log("[ServletContextListener] contextDestroyed 호출");
+    System.out.println("[ServletContextListener] contextDestroyed 호출");
+}
+```
+
+이를 통해 Tomcat이 웹 애플리케이션을 시작하거나 종료할 때 로그가 출력되도록 하였다.
+
+### 4. ServletContextAttributeListener 구현
+
+서블릿 컨텍스트에 속성이 추가, 삭제, 변경될 때 동작하도록 구현하였다.
+
+```java
+@Override
+public void attributeAdded(ServletContextAttributeEvent event) {
+    event.getServletContext().log(
+        "[ServletContextAttributeListener] attributeAdded 호출 - name="
+        + event.getName() + ", value=" + event.getValue()
+    );
+}
+```
+
+확인한 이벤트는 다음과 같다.
+
+- context attribute 추가
+- context attribute 삭제
+- context attribute 변경
+
+### 5. HttpSessionListener 구현
+
+세션이 생성되거나 종료될 때 동작하도록 구현하였다.
+
+```java
+@Override
+public void sessionCreated(HttpSessionEvent se) {
+    se.getSession().getServletContext().log(
+        "[SessionListener] Session 생성 - " + se.getSession().getId()
+    );
+}
+```
+
+확인한 이벤트는 다음과 같다.
+
+- Session 생성
+- Session 종료
+
+### 6. HttpSessionAttributeListener 구현
+
+세션 속성이 추가, 삭제, 변경될 때 동작하도록 구현하였다.
+
+```java
+@Override
+public void attributeAdded(HttpSessionBindingEvent event) {
+    event.getSession().getServletContext().log(
+        "[SessionAttributeListener] Session 속성 추가 - name="
+        + event.getName() + ", value=" + event.getValue()
+    );
+}
+```
+
+확인한 이벤트는 다음과 같다.
+
+- Session 속성 추가
+- Session 속성 삭제
+- Session 속성 변경
+
+### 7. ListenerTestServlet.java 생성
+
+리스너 이벤트를 발생시키기 위해 `ListenerTestServlet.java` 파일을 생성하였다.
+
+이 서블릿은 실행 시 `ServletContext`와 `HttpSession`에 속성을 추가, 변경, 삭제하여 리스너가 동작하도록 한다.
+
+```java
+@WebServlet("/ListenerTestServlet")
+public class ListenerTestServlet extends HttpServlet {
+    ...
+}
+```
+
+서블릿의 `init()` 메서드에서는 `ServletContext` 속성을 처리하였다.
+
+```java
+ServletContext sc = getServletContext();
+
+sc.setAttribute("scName", "홍길동");
+sc.setAttribute("scName", "김철수");
+sc.removeAttribute("scName");
+sc.setAttribute("scName", "홍길동");
+```
+
+`doGet()` 메서드에서는 세션 속성을 처리하였다.
+
+```java
+HttpSession session = request.getSession();
+
+session.setAttribute("sName", "홍길동");
+session.setAttribute("sName", "김철수");
+session.removeAttribute("sName");
+session.setAttribute("sName", "홍길동");
+```
+
+이를 통해 세션 생성과 세션 속성 변화 로그를 확인할 수 있도록 하였다.
+
+### 8. web.xml 생성
+
+`src/main/webapp/WEB-INF/web.xml` 파일을 생성하였다.
+
+기본 welcome 파일을 `index.jsp`로 설정하였다.
+
+```xml
+<welcome-file-list>
+    <welcome-file>index.jsp</welcome-file>
+</welcome-file-list>
+```
+
+### 9. index.jsp 생성
+
+`index.jsp` 파일을 생성하여 `ListenerTestServlet`으로 이동할 수 있는 링크를 작성하였다.
+
+```jsp
+<a href="ListenerTestServlet">ListenerTestServlet 실행</a>
+```
+
+## Maven 빌드
+
+Maven package 명령을 실행하여 WAR 파일을 생성하였다.
+
+```powershell
+& "D:\xampp\apache-maven-3.9.9\bin\mvn.cmd" package -f "C:\Users\User\OneDrive\Desktop\20210596\2026-01-Webprog\20210596\week12\SessionListener\pom.xml"
+```
+
+빌드 성공 시 다음 결과물이 생성된다.
+
+```text
+target/SessionListener.war
+```
+
+## Tomcat 배포
+
+생성된 `SessionListener.war` 파일을 Tomcat의 `webapps` 폴더에 복사하여 배포하였다.
+
+배포 위치:
+
+```text
+D:\xampp\tomcat\webapps
+```
+
+Tomcat 실행 후 다음 주소로 접속하였다.
+
+```text
+http://localhost:8080/SessionListener/
+```
+
+또는
+
+```text
+http://localhost:8080/SessionListener/ListenerTestServlet
+```
+
+## 실행 결과 확인
+
+브라우저에서 `ListenerTestServlet`을 실행한 뒤 Tomcat 로그 파일을 확인하였다.
+
+로그 파일 위치:
+
+```text
+D:\xampp\tomcat\logs
+```
+
+확인한 로그 파일 예시:
+
+```text
+localhost.2026-05-14.log
+```
+
+로그 파일에서 다음과 같은 리스너 실행 결과를 확인하였다.
+
+```text
+[ServletContextListener] contextInitialized 호출
+[ServletContextAttributeListener] attributeAdded 호출
+[ServletContextAttributeListener] attributeReplaced 호출
+[ServletContextAttributeListener] attributeRemoved 호출
+[SessionListener] Session 생성
+[SessionAttributeListener] Session 속성 추가
+[SessionAttributeListener] Session 속성 변경
+[SessionAttributeListener] Session 속성 삭제
+```
+
+## 2차시 작업 요약
+
+- `SessionListener` Maven WebApp 프로젝트를 새로 생성함
+- `ListenerExam.java` 파일을 생성함
+- `@WebListener` 애너테이션을 적용함
+- `ServletContextListener`를 구현하여 웹 애플리케이션 시작과 종료 이벤트를 확인함
+- `ServletContextAttributeListener`를 구현하여 컨텍스트 속성 추가, 삭제, 변경 이벤트를 확인함
+- `HttpSessionListener`를 구현하여 세션 생성과 종료 이벤트를 확인함
+- `HttpSessionAttributeListener`를 구현하여 세션 속성 추가, 삭제, 변경 이벤트를 확인함
+- `ListenerTestServlet.java`를 생성하여 리스너 이벤트를 강제로 발생시킴
+- `index.jsp`에서 `ListenerTestServlet` 실행 링크를 제공함
+- Tomcat 로그 파일에서 리스너 실행 결과를 확인함
+
+---
+
+# 전체 작업 요약
+
+## 1차시
 
 - 기존 `news_project`를 복사하여 `news_filter` 프로젝트를 생성함
 - `pom.xml`에서 프로젝트 이름과 WAR 파일 이름을 `news_filter`로 변경함
@@ -216,13 +518,25 @@ http://localhost:8080/news_filter/news.ice?action=listNews
 - Tomcat `webapps` 폴더에 WAR 파일을 배포함
 - 뉴스 등록, 조회, 수정, 삭제, 이미지 업로드 기능을 확인함
 
+## 2차시
+
+- `SessionListener` 프로젝트를 새로 생성함
+- `ListenerExam.java`와 `ListenerTestServlet.java`를 작성함
+- 서블릿 컨텍스트와 세션의 생명 주기 이벤트를 확인함
+- 컨텍스트 속성과 세션 속성의 추가, 삭제, 변경 이벤트를 확인함
+- Tomcat 로그 파일에서 리스너 실행 결과를 확인함
+
 ## 주요 특징
 
 - Servlet Filter 적용
+- Servlet Listener 적용
 - 한글 인코딩 처리 분리
+- `@WebFilter` 사용
+- `@WebListener` 사용
 - MVC 구조 유지
 - MariaDB JDBC 연동
 - JSP와 JSTL을 활용한 화면 구성
 - 이미지 업로드 기능 포함
 - Maven 기반 WAR 빌드
 - Tomcat 배포 및 실행 확인
+- Tomcat 로그 파일을 통한 리스너 동작 확인
